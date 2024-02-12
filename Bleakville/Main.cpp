@@ -1,112 +1,22 @@
-#include <iostream>
-#include "TriangleObject.h"
+
+#include "Cube.h"
 #include "Utils.h"
+#include "stb_image.h"
 
 // Vertex buffer object (VBO) ID
 unsigned int VBO;
 
 const GLsizei WINDOW_HEIGHT = 800;
 const GLsizei WINDOW_WIDTH = 1000;
-
-Triangle tObject;
-
-// Vertex shader source
-const char* vertexShaderSource = R"(
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-    void main() {
-        gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-    }
-)";
-
-// Fragment shader source
-const char* fragmentShaderSource = R"(
-    #version 330 core
-    out vec4 FragColor;
-    void main() {
-        FragColor = vec4(.41f, .75f, .75f, 1.0f);
-    }
-)";
+const std::string SHADER_DIR = "Shaders/";
+Cube PlayerCube;
 
 // Shader forward declares
 bool BuildAndCompileVertex(GLuint& VertexShader);
 bool BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLchar infoLog[512]);
 bool LinkShaderProgram(GLuint& ShaderProgram, GLuint VertexShader, GLuint FragmentShader, GLint success, GLchar infoLog[512]);
 bool InitializeShaders(GLuint& ShaderProgram, GLuint& FragmentShader, GLuint& VertexShader);
-
-void scaleTriangle(float factor) {
-    
-    for (int i = 0; i < tObject.VertCount; ++i) {
-        tObject.vertices[i] *= factor;
-    }
-}
-
-
-void AlignTriangle()
-{
-    
-    for (int i = 1; i < tObject.VertCount; i += 3)
-    {
-        tObject.vertices[i] -= .7f;
-        
-    }
-}
-
-void updateVertexPositionsUp() {
-    
-    
-    Logger::LogInformation("Size of tObject.vertices = " + std::to_string(tObject.VertCount));
-    for (int i = 1; i < tObject.VertCount; i+= 3)
-    {
-        tObject.vertices[i] += tObject.speed;
-        Logger::LogInformation(std::to_string(tObject.vertices[i]));
-        Position p = tObject.GetPosition();
-        Logger::LogInformation("X: " + std::to_string(p.x));
-        Logger::LogInformation("Y: " + std::to_string(p.y));
-    }
-}
-
-void updateVertexPositionsDown() {
-    
-    Logger::LogInformation("Size of tObject.vertices = " + std::to_string(tObject.VertCount));
-    for (int i = 1; i < tObject.VertCount; i+=3)
-    {
-        tObject.vertices[i] -= tObject.speed;
-        Logger::LogInformation(std::to_string(tObject.vertices[i]));
-        Position p = tObject.GetPosition();
-        Logger::LogInformation("X: " + std::to_string(p.x));
-        Logger::LogInformation("Y: " + std::to_string(p.y));
-    }
-}
-
-void updateVertexPositionsLeft() {
-
-    
-    Logger::LogInformation("Size of tObject.vertices = " + std::to_string(tObject.VertCount));
-    
-    for (int i = 0; i < tObject.VertCount; i += 3)
-    {
-            tObject.vertices[i] -= tObject.speed;
-            Logger::LogInformation(std::to_string(tObject.vertices[i]));
-            Position p = tObject.GetPosition();
-            Logger::LogInformation("X: " + std::to_string(p.x));
-            Logger::LogInformation("Y: " + std::to_string(p.y));
-    }
-    
-}
-
-void updateVertexPositionsRight() {
-    
-    for (int i = 0; i < tObject.VertCount; i += 3)
-    {
-        tObject.vertices[i] += tObject.speed;
-        Logger::LogInformation(std::to_string(tObject.vertices[i]));
-        Position p = tObject.GetPosition();
-        Logger::LogInformation("X: " + std::to_string(p.x));
-        Logger::LogInformation("Y: " + std::to_string(p.y));
-    }
-    
-}
+const GLchar* ReadShaderSource(std::string FileName);
 
 int main() {
     // Initialize GLFW
@@ -152,7 +62,7 @@ int main() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(tObject.vertices), tObject.vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(PlayerCube.vertices), PlayerCube.vertices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
@@ -161,8 +71,9 @@ int main() {
     glBindVertexArray(0); // Unbind VAO
 
     glfwSetWindowAttrib(window, GLFW_RESIZABLE, GLFW_FALSE);
-    scaleTriangle(0.4f);
-    AlignTriangle();
+    PlayerCube.ScalePlayer(0.4f);
+    PlayerCube.AlignPlayer();
+
 
     // Set up the viewport
     glViewport(NULL, NULL, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -175,6 +86,9 @@ int main() {
     // Render loop
     while (!glfwWindowShouldClose(window)) {
         
+        
+
+
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
             break;
@@ -182,7 +96,7 @@ int main() {
 
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !PausePressed)
         {
-            Logger::LogWarning("Paused!");
+            PlayerCube.Fire();
             PausePressed = true;
         }
         else {
@@ -195,32 +109,32 @@ int main() {
         if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         {
             Logger::LogInformation("W is being presssed!");
-            updateVertexPositionsUp();
+            PlayerCube.updateVertexPositionsUp();
         }
 
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         {
             Logger::LogInformation("S is being presssed!");
-            updateVertexPositionsDown();
+            PlayerCube.updateVertexPositionsDown();
         }
 
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         {
             Logger::LogInformation("A is being presssed!");
-            updateVertexPositionsLeft();
+            PlayerCube.updateVertexPositionsLeft();
         }
 
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         {
             Logger::LogInformation("D is being presssed!");
-            updateVertexPositionsRight();
+            PlayerCube.updateVertexPositionsRight();
         }
 
         if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS && !added)
         {
-            tObject.speed += 0.01f;
+            PlayerCube.speed += 0.01f;
             added = true;
-            Logger::LogInformation("Value of tObject.speed (" + std::to_string(tObject.speed) + ")");
+            Logger::LogInformation("Value of tObject.speed (" + std::to_string(PlayerCube.speed) + ")");
         }
         else {
             if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_RELEASE)
@@ -231,15 +145,15 @@ int main() {
 
         if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS && !subtracted)
         {
-            if (tObject.speed >= 0)
+            if (PlayerCube.speed >= 0)
             {
-                tObject.speed -= 0.01f;
+                PlayerCube.speed -= 0.01f;
                 subtracted = true;
-                Logger::LogInformation("Value of tObject.speed (" + std::to_string(tObject.speed) + ")");
+                Logger::LogInformation("Value of tObject.speed (" + std::to_string(PlayerCube.speed) + ")");
             }
             else
             {
-                tObject.speed = 0.001f;
+                PlayerCube.speed = 0.001f;
                 subtracted = true;
             }
             
@@ -259,7 +173,7 @@ int main() {
         // Bind the VBO
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         // Update the vertex data
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(tObject.vertices), tObject.vertices);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(PlayerCube.vertices), PlayerCube.vertices);
 
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
@@ -297,6 +211,7 @@ int main() {
 // Build and compile vertex first
 bool BuildAndCompileVertex(GLuint& VertexShader)
 {
+    const GLchar* vertexShaderSource = ReadShaderSource("vertex_shader.vert");
     // Build and compile the vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -318,6 +233,7 @@ bool BuildAndCompileVertex(GLuint& VertexShader)
 // Build and compile Fragments second
 bool BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLchar infoLog[512])
 {
+    const GLchar* fragmentShaderSource = ReadShaderSource("fragment_shader.frag");
     // Build and compile the fragment shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
@@ -380,4 +296,34 @@ bool InitializeShaders(GLuint& ShaderProgram, GLuint& FragmentShader, GLuint& Ve
         Logger::LogError("Something failed during initialization, check console logs.");
 
     return Success;
+}
+
+const GLchar* ReadShaderSource(std::string FileName) {
+    const std::string FilePath = SHADER_DIR + FileName;
+
+    std::ifstream file(FilePath);
+    if (!file.is_open()) {
+        Logger::LogError("Failed to open shader: " + FileName);
+        return nullptr;
+    }
+
+    Logger::LogInformation("Reading shader at: " + FilePath);
+
+    // Read the file contents into a stringstream
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    // Get the string from the stringstream
+    std::string shaderSourceStr = buffer.str();
+
+    // Allocate memory for the shader source dynamically
+    const GLchar* shaderSource = new GLchar[shaderSourceStr.size() + 1];
+
+    // Copy the shader source string to the allocated memory
+    strcpy_s(const_cast<char*>(shaderSource), shaderSourceStr.size() + 1, shaderSourceStr.c_str());
+
+    // Close the file
+    file.close();
+
+    return shaderSource;
 }
