@@ -7,6 +7,8 @@ public:
     float damper = 10;
     float speed = acceleration / damper;
     
+    Cube();
+
     // vertices = x, y, z
     GLfloat vertices[12] = {
          -0.5f,  .5f, 0.0f,  // Top left vertex
@@ -14,6 +16,7 @@ public:
          0.5f, -.5f, 0.0f,   // Bottom-right vertex
          0.5f, .5f, 0.0f     // top right vertex
     };
+
     GLint VertCount = sizeof(vertices) / sizeof(vertices[0]);
 
     Transform transform;
@@ -33,4 +36,14 @@ public:
     void ScalePlayer(float factor);
 
     void AlignPlayer();
+
+    void Initialize();
+private:
+    GLuint ShaderProgram,
+        VertexBuffer,
+        VertexArray,
+        ShaderFragment,
+        ShaderVertex;
+
+    void InitializeVertexArrays();
 };

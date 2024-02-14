@@ -38,39 +38,8 @@ int main() {
         return -1;
     }
 
-    GLuint VertexShader;
-    GLuint FragmentShader;
-    GLuint ShaderProgram;
-
-    if (!Utility::InitializeShaders(ShaderProgram, FragmentShader, VertexShader))
-    {
-        Logger::LogError("Failed to Initialize :(");
-        return 0;
-    }
-
     glfwSetWindowAttrib(window, GLFW_RESIZABLE, GLFW_FALSE);
-    ControllerCube.ScalePlayer(0.4f);
-    ControllerCube.AlignPlayer();
-
-    GLuint VertexArrayID;
-    glGenVertexArrays(1, &VertexArrayID);
-    glBindVertexArray(VertexArrayID);
-
-    //draw obj
-    // 
-    // This will identify our vertex buffer
-    GLuint vertexbuffer;
-    // Generate 1 buffer, put the resulting identifier in vertexbuffer
-    glGenBuffers(1, &vertexbuffer);
-    // The following commands will talk about our 'vertexbuffer' buffer
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-
-    // Give our vertices to OpenGL.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(ControllerCube.vertices), ControllerCube.vertices, GL_DYNAMIC_DRAW);
-
-
+    ControllerCube.Initialize();
     
     bool PausePressed = false;
     bool added = false;
@@ -85,6 +54,7 @@ int main() {
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
+            Logger::LogInformation("Exiting!");
             break;
         }
 
@@ -124,7 +94,7 @@ int main() {
         {
             ControllerCube.speed += 0.01f;
             added = true;
-            Logger::LogInformation("Value of tObject.speed (" + std::to_string(ControllerCube.speed) + ")");
+            Logger::LogInformation("Value of tObject.speed (" + std::to_string(ControllerCube.speed * 1000) + ")");
         }
         else {
             if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_RELEASE)
@@ -139,7 +109,7 @@ int main() {
             {
                 ControllerCube.speed -= 0.01f;
                 subtracted = true;
-                Logger::LogInformation("Value of tObject.speed (" + std::to_string(ControllerCube.speed) + ")");
+                Logger::LogInformation("Value of tObject.speed (" + std::to_string(ControllerCube.speed * 1000) + ")");
             }
             else
             {
@@ -159,20 +129,7 @@ int main() {
         {
             Logger::LogInformation("R is being presssed!");
         }
-
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glUseProgram(ShaderProgram);
-
-        // 1st attribute buffer : vertices
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(ControllerCube.vertices), ControllerCube.vertices);
-        
-        // Draw the triangle !
-        glDrawArrays(GL_LINE_LOOP, 0, 4); // Starting from vertex 0; 3 vertices total -> 1 triangle
-        glDisableVertexAttribArray(0);
+        ControllerCube.Draw();
 
         // Swap buffers and poll events
         glfwSwapBuffers(window);
