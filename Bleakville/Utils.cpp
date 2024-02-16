@@ -3,10 +3,13 @@
 #include "Utils.h"
 
 
-
-
 const std::string SHADER_DIR = "Shaders/";
 const int GLFW_MAX_KEYS = 348;
+
+Utility::Utility()
+{
+    Logger::LogInformation("Utility object successfully built...ready to use");
+}
 
 bool Utility::BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLchar infoLog[512])
 {
@@ -97,15 +100,15 @@ bool Utility::LinkShaderProgram(GLuint& ShaderProgram, GLuint VertexShader, GLui
     );
 
     // Link the vertex and fragment shader into a shader program
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, VertexShader);
-    glAttachShader(shaderProgram, FragmentShader);
-    glLinkProgram(shaderProgram);
+    ShaderProgram = glCreateProgram();
+    glAttachShader(ShaderProgram, VertexShader);
+    glAttachShader(ShaderProgram, FragmentShader);
+    glLinkProgram(ShaderProgram);
 
     // Check for shader program link errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        glGetProgramInfoLog(ShaderProgram, 512, NULL, infoLog);
         Logger::LogInformation("Shader program linking failed:\n" + (std::string)infoLog);
     }
 
@@ -115,8 +118,35 @@ bool Utility::LinkShaderProgram(GLuint& ShaderProgram, GLuint VertexShader, GLui
     glDeleteShader(VertexShader);
     glDeleteShader(FragmentShader);
 
-    ShaderProgram = shaderProgram;
+    
     return success;
+}
+
+void Utility::UseShader(GLuint& ShaderProgram)
+{
+    glUseProgram(ShaderProgram);
+    return;
+}
+
+bool Utility::Cleanup(GLuint& ShaderProgram)
+{
+    try {
+        if (!ShaderProgram)
+            throw std::runtime_error("Invalid shader program.");
+
+        // Cleanup code here...
+        glDeleteProgram(ShaderProgram);
+
+        //..........................
+        Logger::LogInformation("Successfully cleaned up after myself :)");
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        Logger::LogError("Ran into issues during cleanup:\n" + std::string(e.what()));
+        return false;
+    }
+
 }
 
 

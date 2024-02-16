@@ -137,6 +137,7 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="Logging.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="stb.cpp" />
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Vec2D.cpp" />

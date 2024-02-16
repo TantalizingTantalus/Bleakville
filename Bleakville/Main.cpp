@@ -1,13 +1,11 @@
-
 #include "Cube.h"
-#include "stb_image.h"
-
 
 const GLsizei WINDOW_HEIGHT = 800;
 const GLsizei WINDOW_WIDTH = 1200;
 
 Cube ControllerCube;
 
+GLuint ShaderProgram;
 
 int main() {
     // Initialize GLFW
@@ -39,8 +37,8 @@ int main() {
     }
 
     glfwSetWindowAttrib(window, GLFW_RESIZABLE, GLFW_FALSE);
-    ControllerCube.Initialize();
-    
+    ControllerCube.Initialize(ShaderProgram);
+
     bool PausePressed = false;
     bool added = false;
     bool subtracted = false;
@@ -50,7 +48,7 @@ int main() {
     // Render loop
     while (!glfwWindowShouldClose(window)) {
 
-        
+        Utility::UseShader(ShaderProgram);
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
@@ -134,6 +132,10 @@ int main() {
         // Swap buffers and poll events
         glfwSwapBuffers(window);
         glfwPollEvents();
+    }
+    if (!Utility::Cleanup(ShaderProgram))
+    {
+        Logger::LogWarning("Exited without properly cleaning up...");
     }
 
     // Terminate GLFW

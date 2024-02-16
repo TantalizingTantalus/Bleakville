@@ -1,23 +1,32 @@
 #pragma once
 #include "Utils.h"
-
 class Cube {
 public:
     float acceleration = 0.1f;
     float damper = 10;
     float speed = acceleration / damper;
+    const char* TexturePath = "Artwork/Farm.png";
+    const char* CubeFriendlyName = "Player_Cube";
+    bool UseTextures = true;
     
     Cube();
+    ~Cube();
 
-    // vertices = x, y, z
-    GLfloat vertices[12] = {
-         -0.5f,  .5f, 0.0f,  // Top left vertex
-        -0.5f, -0.5f, 0.0f,  // Bottom-left vertex
-         0.5f, -.5f, 0.0f,   // Bottom-right vertex
-         0.5f, .5f, 0.0f     // top right vertex
+    float vertices[32] = {
+        // positions          // colors           // texture coords
+        0.5f,  0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // top right
+        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f,   // bottom right
+       -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   // bottom left
+       -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+    };
+
+    unsigned int indices[6] = {  // note that we start from 0!
+    0, 1, 3,   // first triangle
+    1, 2, 3    // second triangle
     };
 
     GLint VertCount = sizeof(vertices) / sizeof(vertices[0]);
+    GLint IndicesCount = sizeof(indices) / sizeof(indices[0]);
 
     Transform transform;
 
@@ -37,13 +46,17 @@ public:
 
     void AlignPlayer();
 
-    void Initialize();
+    void Initialize(GLuint& ShaderProgram);
 private:
-    GLuint ShaderProgram,
+    GLuint 
         VertexBuffer,
         VertexArray,
         ShaderFragment,
-        ShaderVertex;
+        ShaderVertex,
+        EBO,
+        Texture;
 
-    void InitializeVertexArrays();
+    int w, h, nrCh;
+
+    void InitializeGeometry();
 };
