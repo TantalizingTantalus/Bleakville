@@ -8,19 +8,24 @@
 #include "Logging.h"
 #include "Transform.h"
 #include "dependencies/include/stb_load/stb_image.h"
+#include "dependencies/glm/glm.hpp"
+#include "dependencies/glm/gtc/matrix_transform.hpp"
+#include "dependencies/glm/gtc/type_ptr.hpp"
 
-class Utility 
+class Shader 
 {
 public:
      
-    Utility();
-    static bool InitializeShaders(GLuint& ShaderProgram, GLuint& FragmentShader, GLuint& VertexShader);
-    static bool IsAnyKeyPressed(GLFWwindow* window);
-    static void UseShader(GLuint& ShaderProgram);
-    static bool Cleanup(GLuint& ShaderProgram);
+    Shader();
+    bool InitializeShaders( GLuint& FragmentShader, GLuint& VertexShader);
+    bool IsAnyKeyPressed(GLFWwindow* window);
+    void UseShader();
+    bool Cleanup();
+    GLuint ShaderProgram;
 private:
-    static bool BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLchar infoLog[512]);
-    static bool BuildAndCompileVertex(GLuint& VertexShader);
-    static bool LinkShaderProgram(GLuint& ShaderProgram, GLuint VertexShader, GLuint FragmentShader, GLint success, GLchar infoLog[512]);
-    static const GLchar* ReadShaderSource(std::string FileName);
+    bool BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLchar infoLog[512]);
+    bool BuildAndCompileVertex(GLuint& VertexShader);
+    bool LinkShaderProgram(GLuint VertexShader, GLuint FragmentShader, GLint success, GLchar infoLog[512]);
+    const GLchar* ReadShaderSource(std::string FileName);
+    
 };

@@ -6,12 +6,12 @@
 const std::string SHADER_DIR = "Shaders/";
 const int GLFW_MAX_KEYS = 348;
 
-Utility::Utility()
+Shader::Shader()
 {
     Logger::LogInformation("Utility object successfully built...ready to use");
 }
 
-bool Utility::BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLchar infoLog[512])
+bool Shader::BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLchar infoLog[512])
 {
     const std::string ShaderName = "fragment_shader.frag";
     const GLchar* fragmentShaderSource = ReadShaderSource(ShaderName);
@@ -32,7 +32,7 @@ bool Utility::BuildAndCompileFragment(GLuint& FragmentShader, GLint success, GLc
     return success;
 }
 
-bool Utility::IsAnyKeyPressed(GLFWwindow* window)
+bool Shader::IsAnyKeyPressed(GLFWwindow* window)
 {
     for (int key = GLFW_KEY_SPACE; key <= GLFW_MAX_KEYS; ++key) {
         if (glfwGetKey(window, key) == GLFW_PRESS) {
@@ -42,7 +42,7 @@ bool Utility::IsAnyKeyPressed(GLFWwindow* window)
     return false;
 }
 
-bool Utility::BuildAndCompileVertex(GLuint& VertexShader)
+bool Shader::BuildAndCompileVertex(GLuint& VertexShader)
 {
     const std::string ShaderName = "vertex_shader.vert";
     const GLchar* vertexShaderSource = ReadShaderSource(ShaderName);
@@ -65,7 +65,7 @@ bool Utility::BuildAndCompileVertex(GLuint& VertexShader)
     return success;
 }
 
-bool Utility::InitializeShaders(GLuint& ShaderProgram, GLuint& FragmentShader, GLuint& VertexShader)
+bool Shader::InitializeShaders( GLuint& FragmentShader, GLuint& VertexShader)
 {
     Logger::LogInformation("Initializeing shaders...");
     GLuint Success;
@@ -79,7 +79,7 @@ bool Utility::InitializeShaders(GLuint& ShaderProgram, GLuint& FragmentShader, G
     if (Success)
         Logger::LogInformation("Fragment shader built and compiled successfully...");
 
-    Success = LinkShaderProgram(ShaderProgram, VertexShader, FragmentShader, Success, infoLog);
+    Success = LinkShaderProgram(VertexShader, FragmentShader, Success, infoLog);
     if (Success)
         Logger::LogInformation("Successfully linked Shader Program with Vertex and Fragment shaders...");
 
@@ -88,10 +88,11 @@ bool Utility::InitializeShaders(GLuint& ShaderProgram, GLuint& FragmentShader, G
     else
         Logger::LogError("Something failed during initialization, check console logs.");
 
+
     return Success;
 }
 
-bool Utility::LinkShaderProgram(GLuint& ShaderProgram, GLuint VertexShader, GLuint FragmentShader, GLint success, GLchar infoLog[512])
+bool Shader::LinkShaderProgram(GLuint VertexShader, GLuint FragmentShader, GLint success, GLchar infoLog[512])
 {
     Logger::LogInformation
     (
@@ -122,13 +123,13 @@ bool Utility::LinkShaderProgram(GLuint& ShaderProgram, GLuint VertexShader, GLui
     return success;
 }
 
-void Utility::UseShader(GLuint& ShaderProgram)
+void Shader::UseShader()
 {
     glUseProgram(ShaderProgram);
     return;
 }
 
-bool Utility::Cleanup(GLuint& ShaderProgram)
+bool Shader::Cleanup()
 {
     try {
         if (!ShaderProgram)
@@ -150,7 +151,7 @@ bool Utility::Cleanup(GLuint& ShaderProgram)
 }
 
 
-const GLchar* Utility::ReadShaderSource(std::string FileName)
+const GLchar* Shader::ReadShaderSource(std::string FileName)
 {
     const std::string FilePath = SHADER_DIR + FileName;
 

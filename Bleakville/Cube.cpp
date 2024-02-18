@@ -1,4 +1,7 @@
 #include "Cube.h"
+#include "ProgramWindow.h"
+
+
 
 Cube::Cube()
 {
@@ -9,9 +12,6 @@ Cube::Cube()
     Texture = NULL;
     ShaderFragment = NULL;
     ShaderVertex = NULL;
-    h = NULL;
-    w = NULL;
-    nrCh = NULL;
 }
 
 Cube::~Cube()
@@ -24,61 +24,59 @@ Cube::~Cube()
 void Cube::updateVertexPositionsUp() {
 
 
-    for (int i = 1; i < VertCount; i += 8)
+    for (int i = 1; i < VertCount; i += 5)
     {
         vertices[i] += speed;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    UpdateVertexBuffer();
 }
 
 void Cube::updateVertexPositionsDown() {
 
-    for (int i = 1; i < VertCount; i += 8)
+    for (int i = 1; i < VertCount; i += 5)
     {
         vertices[i] -= speed;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    UpdateVertexBuffer();
 }
 
 void Cube::updateVertexPositionsLeft() {
 
 
 
-    for (int i = 0; i < VertCount; i += 8)
+    for (int i = 0; i < VertCount; i += 5)
     {
         vertices[i] -= speed;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    UpdateVertexBuffer();
 
 }
 
 void Cube::updateVertexPositionsRight() {
-    for (int i = 0; i < VertCount; i += 8)
+    for (int i = 0; i < VertCount; i += 5)
     {
         vertices[i] += speed;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    UpdateVertexBuffer();
 }
 
-void Cube::ScalePlayer(float factor)
+void Cube::ScalePlayer(float factor, GLuint& ProgramShader)
 {
+    ModelMatrix = glm::scale(ModelMatrix, glm::vec3(factor, factor, factor));
+    CubeShader.UseShader();
+    unsigned int transformLoc = glGetUniformLocation(ProgramShader, "ModelMatrix");
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(ModelMatrix));
+    
+    UpdateVertexBuffer();
+}
 
-    for (int i = 0; i < VertCount; ++i) {
-        vertices[i] *= factor;
-    }
-
+void Cube::UpdateVertexBuffer()
+{
     glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -87,14 +85,12 @@ void Cube::ScalePlayer(float factor)
 void Cube::AlignPlayer()
 {
 
-    for (int i = 1; i < VertCount; i += 8)
+    for (int i = 1; i < VertCount; i += 5)
     {
-        vertices[i] -= .7f;
+        vertices[i] -= .5f;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    UpdateVertexBuffer();
 }
 
 void Cube::Fire()
@@ -126,13 +122,11 @@ void Cube::InitializeGeometry()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    // texture coord attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     if (UseTextures)
     {
@@ -147,11 +141,14 @@ void Cube::InitializeGeometry()
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            unsigned char* data = stbi_load(TexturePath, &w, &h, &nrCh, 0);
+            stbi_set_flip_vertically_on_load(true);
+            int w, h, nrCh;
+            unsigned char* data = stbi_load(TexturePath.c_str(), &w, &h, &nrCh, 0);
             if (data)
             {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
                 glGenerateMipmap(GL_TEXTURE_2D);
+                
             }
 
 
@@ -167,17 +164,21 @@ void Cube::InitializeGeometry()
     
 }
 
-
-
-void Cube::Initialize(GLuint& ShaderProgram)
+void Cube::Initialize()
 {
-    if (!Utility::InitializeShaders(ShaderProgram, ShaderFragment, ShaderVertex))
+    
+
+    if (!CubeShader.InitializeShaders( ShaderFragment, ShaderVertex))
     {
         Logger::LogError("Failed to Initialize, may run into issues...");
     }
 
-    InitializeGeometry();
 
-    ScalePlayer(1.0f);
-    AlignPlayer();
+    InitializeGeometry();
+    
+    ScalePlayer(0.1f, CubeShader.ShaderProgram);
+    
+    //AlignPlayer();
+
+    Draw();
 }
