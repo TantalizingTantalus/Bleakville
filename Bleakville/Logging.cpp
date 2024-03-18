@@ -1,19 +1,16 @@
 #include "Logging.h"
 
-void Logger::LogInformation(const std::string& Input)
+void Logging::LogInformation(std::string Message)
 {
-	spdlog::info(Input);
-	return;
+	spdlog::info(Message);
 }
 
-void Logger::LogWarning(const std::string& Input)
+void Logging::LogWarning(std::string Message)
 {
-	spdlog::warn(Input);
-	return;
+	spdlog::warn(Message);
 }
 
-void Logger::LogError(const std::string& Input)
+void Logging::LogError(std::string Message)
 {
-	spdlog::error(Input);
-	return;
+	spdlog::error(Message);
 }

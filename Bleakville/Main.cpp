@@ -1,148 +1,214 @@
+#include <iostream>
+#include "Logging.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include "dependencies/include/stb_load/stb_image.h"
+#include "dependencies/glm/glm.hpp"
+#include "dependencies/glm/gtc/matrix_transform.hpp"
+#include "dependencies/glm/gtc/type_ptr.hpp"
 
-#include "ProgramWindow.h"
+#include "Shader.h"
 
-PWindow Window;
-Cube ControllerCube;
-Cube Enemy;
+#include <iostream>
 
-int main() {
-    
-    if (!Window.InitializeWindow())
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+
+// settings
+const unsigned int SCR_WIDTH = 1200;
+const unsigned int SCR_HEIGHT = 800;
+
+int main()
+{
+    Logging::LogWarning("Life's a garden in Hell, dig it.  =)");
+    // glfw: initialize and configure
+    // ------------------------------
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+
+    // glfw window creation
+    // --------------------
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BleakVille", NULL, NULL);
+    if (window == NULL)
     {
-        Logger::LogError("Failed to intialize window...");
-        return 0;
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
     }
-    
-    ControllerCube.Initialize();
-    Enemy.TexturePath = "/Artwork/wall.jpg";
-    Enemy.Initialize();
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    bool PausePressed = false, added = false, subtracted = false, psubtracted = false, padded = false;
-    
-    Logger::LogInformation("Starting loop...");
+    // glad: load all OpenGL function pointers
+    // ---------------------------------------
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
 
-    // Render loop
-    while (!glfwWindowShouldClose(Window.WindowContext)) {
+    // build and compile our shader zprogram
+    // ------------------------------------
+    Shader ourShader("Shaders/vertex_shader.vert", "Shaders/fragment_shader.frag");
 
-        ControllerCube.CubeShader.UseShader();
-        Enemy.CubeShader.UseShader();
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float vertices[] = {
+        // positions          // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
+         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
+    };
+    unsigned int indices[] = {
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+    };
+    unsigned int VBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        {
-            Logger::LogInformation("Exiting!");
-            break;
-        }
+    glBindVertexArray(VAO);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_SPACE) == GLFW_PRESS && !PausePressed)
-        {
-            ControllerCube.Fire();
-            PausePressed = true;
-        }
-        else {
-            if (glfwGetKey(Window.WindowContext, GLFW_KEY_SPACE) == GLFW_RELEASE)
-            {
-                PausePressed = false;
-            }
-        }
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-        if(glfwGetKey(Window.WindowContext, GLFW_KEY_W) == GLFW_PRESS)
-        {
-            ControllerCube.updateVertexPositionsUp();
-        }
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_S) == GLFW_PRESS)
-        {
-            ControllerCube.updateVertexPositionsDown();
-        }
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // texture coord attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_A) == GLFW_PRESS)
-        {
-            ControllerCube.updateVertexPositionsLeft();
-        }
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_D) == GLFW_PRESS)
-        {
-            ControllerCube.updateVertexPositionsRight();
-        }
+    // load and create a texture 
+    // -------------------------
+    unsigned int texture1, texture2;
+    // texture 1
+    // ---------
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // load image, create texture and generate mipmaps
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+    unsigned char* data = stbi_load("Artwork/Player.png", &width, &height, &nrChannels, 4);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+    // texture 2
+    // ---------
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // load image, create texture and generate mipmaps
+    data = stbi_load("Artwork/Player.png", &width, &height, &nrChannels, 4);
+    if (data)
+    {
+        // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_KP_ADD) == GLFW_PRESS && !added)
-        {
-            ControllerCube.speed += 0.01f;
-            added = true;
-            Logger::LogInformation("Value of tObject.speed (" + std::to_string(ControllerCube.speed * 100) + ")");
-            
-        }
-        else {
-            if (glfwGetKey(Window.WindowContext, GLFW_KEY_KP_ADD) == GLFW_RELEASE)
-            {
-                added = false;
-            }
-        }
+    // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+    // -------------------------------------------------------------------------------------------
+    ourShader.use();
+    ourShader.setInt("texture1", 0);
+    ourShader.setInt("texture2", 1);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS && !subtracted)
-        {
-            ControllerCube.speed -= 0.01f;
-            subtracted = true;
-            Logger::LogInformation("Value of tObject.speed (" + std::to_string(ControllerCube.speed * 100) + ")");
 
-        }
-        else {
-            if (glfwGetKey(Window.WindowContext, GLFW_KEY_KP_SUBTRACT) == GLFW_RELEASE)
-            {
-                subtracted = false;
-            }
-        }
+    // render loop
+    // -----------
+    while (!glfwWindowShouldClose(window))
+    {
+        // input
+        // -----
+        processInput(window);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_PAGE_UP) == GLFW_PRESS && !padded)
-        {
-            Window.SetWindowSize(Window.WINDOW_HEIGHT + 100, Window.WINDOW_WIDTH + 100);
-            padded = true;
-            Logger::LogInformation("Value of tObject.speed (" + std::to_string(ControllerCube.speed * 100) + ")");
+        // render
+        // ------
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-        }
-        else {
-            if (glfwGetKey(Window.WindowContext, GLFW_KEY_PAGE_UP) == GLFW_RELEASE)
-            {
-                padded = false;
-            }
-        }
+        // bind textures on corresponding texture units
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS && !psubtracted)
-        {
-                Window.SetWindowSize(Window.WINDOW_HEIGHT - 100, Window.WINDOW_WIDTH - 100);
-                psubtracted = true;
-                Logger::LogInformation("Value of WINDOW_HEIGHT: " + std::to_string(Window.WINDOW_HEIGHT) + "\nValue of WINDOW_WIDTH: " + std::to_string(Window.WINDOW_WIDTH));
-            
-        }
-        else {
-            if (glfwGetKey(Window.WindowContext, GLFW_KEY_PAGE_DOWN) == GLFW_RELEASE)
-            {
-                psubtracted = false;
-            }
-        }
+        // create transformations
+        glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+        transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+        transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
 
-        if (glfwGetKey(Window.WindowContext, GLFW_KEY_R) == GLFW_PRESS)
-        {
-            Logger::LogInformation("R is being presssed!");
-        }
+        // get matrix's uniform location and set matrix
+        ourShader.use();
+        unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
-        Enemy.Draw();
-        ControllerCube.Draw();
-        
+        // render container
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-        // Swap buffers and poll events
-        glfwSwapBuffers(Window.WindowContext);
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // -------------------------------------------------------------------------------
+        glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    if (!ControllerCube.CubeShader.Cleanup())
-    {
-        Logger::LogWarning("Exited without properly cleaning up...");
-    }
 
-    // Terminate GLFW
+    // optional: de-allocate all resources once they've outlived their purpose:
+    // ------------------------------------------------------------------------
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+
+    // glfw: terminate, clearing all previously allocated GLFW resources.
+    // ------------------------------------------------------------------
     glfwTerminate();
-
-    Logger::LogWarning("Program completed successfully!");
     return 0;
 }
 
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
+
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    // make sure the viewport matches the new window dimensions; note that width and 
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
+}

@@ -1,12 +1,14 @@
-#pragma once
-#include <iostream>
-#include <spdlog/spdlog.h>
+#include <string.h>
+#include "spdlog/spdlog.h"
 
-class Logger
+class Logging
 {
 public:
-	static void LogInformation(const std::string&);
-	static void LogWarning(const std::string&);
-	static void LogError(const std::string&);
+	static void LogInformation(std::string);
+	static void LogWarning(std::string);
+	static void LogError(std::string);
+
+private:
+
 
 };
